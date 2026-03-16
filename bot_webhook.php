@@ -12,7 +12,11 @@ $apiUrl = "https://api.telegram.org/bot$token";
 $content = file_get_contents("php://input");
 $update = json_decode($content, true);
 
+// Sistema de LOGS para depuración
+file_put_contents('log_bot.txt', "[" . date('Y-m-d H:i:s') . "] Payload recibido: " . $content . "\n", FILE_APPEND);
+
 if (!$update) {
+    file_put_contents('log_bot.txt', "[" . date('Y-m-d H:i:s') . "] Error: No se recibió un JSON válido o petición vacía.\n", FILE_APPEND);
     exit;
 }
 
@@ -140,7 +144,7 @@ if (isset($update['callback_query'])) {
         $db = getDB();
         $s = $db->prepare("INSERT INTO citas (cliente_id, veterinario_id, fecha, hora) VALUES (?, ?, ?, ?)");
         if ($s->execute([$cliente['id'], $vid, $f, $h])) {
-            sendMessage($chatId, "✅ <b>Cita agendada!</b>\n📅 $f a las $h. 🐾");
+            sendMessage($chatId, "✅ <b>¡Cita agendada con éxito!</b>\n\n📅 <b>Fecha:</b> $f\n⏰ <b>Hora:</b> $h\n💰 <b>Valor:</b> $250.000 COP\n\n¡Te esperamos en la veterinaria! 🐾");
         }
     } elseif ($data === 'ver_citas') {
         $db = getDB(); $hoy = date('Y-m-d');
