@@ -96,7 +96,11 @@ async function cargarClientes() {
 // === API VETERINARIOS ===
 document.getElementById('form-veterinario').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const payload = { nombre: document.getElementById('vet-nombre').value };
+    const payload = { 
+        nombre: document.getElementById('vet-nombre').value,
+        usuario: document.getElementById('vet-usuario').value,
+        password: document.getElementById('vet-password').value
+    };
 
     const res = await fetch('api_veterinarios.php', {
         method: 'POST',
@@ -138,7 +142,10 @@ async function cargarVeterinarios() {
     if (json.success && json.data.length > 0) {
         json.data.forEach(v => {
             container.innerHTML += `<div class="list-item">
-                <div class="item-info">👨‍⚕️ <b>${v.nombre}</b></div>
+                <div class="item-info">
+                    👨‍⚕️ <b>${v.nombre}</b><br>
+                    <small>👤 Usuario: ${v.usuario || 'N/A'}</small>
+                </div>
                 <button class="btn-delete" onclick="eliminarVeterinario(${v.id}, '${v.nombre.replace(/'/g, "\\'")}')">🗑️</button>
             </div>`;
         });
@@ -188,5 +195,11 @@ async function cargarListaCitas() {
     }
 }
 
-// Inicializar la vista por defecto
-cargarClientes();
+// Inicializar la vista por defecto según lo que esté activo (PHP lo decide)
+const activeSection = document.querySelector('.view-section.active');
+if (activeSection) {
+    const targetId = activeSection.id;
+    if (targetId === 'clientes') cargarClientes();
+    if (targetId === 'veterinarios') cargarVeterinarios();
+    if (targetId === 'citas-admin') cargarListaCitas();
+}
