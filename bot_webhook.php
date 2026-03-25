@@ -146,9 +146,11 @@ if (isset($update['callback_query'])) {
 
     if ($data === 'agendar') {
         $vets = obtenerVeterinarios();
-        $btns = array_map(fn($v) => [['text' => '🩺 '.$v['nombre'], 'callback_data' => 'vet_'.$v['id']]], $vets);
+        $btns = array_map(function($v) {
+            return [['text' => '🩺 '.$v['nombre'], 'callback_data' => 'vet_'.$v['id']]];
+        }, $vets);
         sendMessage($chatId, "Selecciona un <b>veterinario</b>:", ['inline_keyboard' => $btns]);
-    } elseif (str_starts_with($data, 'vet_')) {
+    } elseif (substr($data, 0, 4) === 'vet_') {
         $vid = substr($data, 4);
         $btns = [];
         for ($i=1; $i<=7; $i++) {
@@ -158,7 +160,7 @@ if (isset($update['callback_query'])) {
             }
         }
         sendMessage($chatId, "Selecciona una <b>fecha</b>:", ['inline_keyboard' => $btns]);
-    } elseif (str_starts_with($data, 'f_')) {
+    } elseif (substr($data, 0, 2) === 'f_') {
         [, $vid, $fecha] = explode('_', $data);
         $hdis = obtenerHorariosDisponibles($fecha, $vid);
         $btns = []; $row = [];
@@ -168,7 +170,7 @@ if (isset($update['callback_query'])) {
         }
         if ($row) $btns[] = $row;
         sendMessage($chatId, "Elegir hora para $fecha:", ['inline_keyboard' => $btns]);
-    } elseif (str_starts_with($data, 'h_')) {
+    } elseif (substr($data, 0, 2) === 'h_') {
         [, $vid, $f, $h] = explode('_', $data);
         // Iniciamos el cuestionario de la mascota
         setStep($chatId, 'preg_nombre', ['vid' => $vid, 'f' => $f, 'h' => $h]);
