@@ -17,6 +17,10 @@ function getDB() {
         // Habilitar excepciones en caso de error
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         
+        // Optimización de concurrencia para SQLite
+        $pdo->exec("PRAGMA journal_mode=WAL;");
+        $pdo->exec("PRAGMA busy_timeout=5000;");
+        
         // Habilitar claves foráneas (importante en SQLite)
         $pdo->exec('PRAGMA foreign_keys = ON;');
         

@@ -56,6 +56,17 @@ function removeKeyboard($chatId, $text) {
     sendMessage($chatId, $text, ['remove_keyboard' => true]);
 }
 
+function answerCallbackQuery($callbackQueryId) {
+    global $apiUrl;
+    $data = ['callback_query_id' => $callbackQueryId];
+    $ch = curl_init("$apiUrl/answerCallbackQuery");
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+    curl_exec($ch);
+    curl_close($ch);
+}
+
 function buscarClientePorTelefono($telefono) {
     $db = getDB();
     $soloDigitos = preg_replace('/\D/', '', $telefono);
@@ -154,6 +165,7 @@ try {
 
     if (isset($update['callback_query'])) {
         $cb = $update['callback_query'];
+        answerCallbackQuery($cb['id']);
         $data = $cb['data'];
         
         if (!$cliente && !in_array($data, ['registrar_nueva', 'check_contact'])) {
