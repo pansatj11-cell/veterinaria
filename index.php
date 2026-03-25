@@ -12,17 +12,25 @@
 <body>
 
     <header>
-        <h1>🐾 Sistema Veterinario - Panel Admin</h1>
+        <h1>🐾 Sistema Veterinario</h1>
+        <div class="user-info">
+            Bienvenido, <b><?php echo $_SESSION['user_name'] ?? 'Usuario'; ?></b> 
+            (<?php echo ($_SESSION['user_role'] === 'admin' ? 'Admin' : 'Veterinario'); ?>)
+            <a href="logout.php" class="logout-link">Cerrar Sesión</a>
+        </div>
         <nav>
-            <button class="nav-btn active" data-target="clientes">Clientes</button>
-            <button class="nav-btn" data-target="veterinarios">Veterinarios</button>
-            <button class="nav-btn" data-target="citas-admin">Ver Citas</button>
+            <?php if ($_SESSION['user_role'] === 'admin'): ?>
+                <button class="nav-btn active" data-target="clientes">Clientes</button>
+                <button class="nav-btn" data-target="veterinarios">Veterinarios</button>
+            <?php endif; ?>
+            <button class="nav-btn <?php echo $_SESSION['user_role'] === 'vet' ? 'active' : ''; ?>" data-target="citas-admin">Ver Citas</button>
             <a href="historial.php" class="nav-link-btn">📋 Historial Clínico</a>
         </nav>
     </header>
 
     <main>
         <!-- SECCIÓN CLIENTES -->
+        <?php if ($_SESSION['user_role'] === 'admin'): ?>
         <section id="clientes" class="view-section active">
             <h2>Registrar Cliente</h2>
             <p class="section-hint">📱 El cliente recibirá sus citas por Telegram. Solo necesitas registrar su número de teléfono.</p>
@@ -49,8 +57,16 @@
             <h2>Añadir Veterinario</h2>
             <form id="form-veterinario">
                 <div class="form-group">
-                    <label>Nombre del Veterinario</label>
+                    <label>Nombre Completo</label>
                     <input type="text" id="vet-nombre" required placeholder="Ej: Dra. María López">
+                </div>
+                <div class="form-group">
+                    <label>Usuario de Acceso</label>
+                    <input type="text" id="vet-usuario" required placeholder="Ej: mlopez">
+                </div>
+                <div class="form-group">
+                    <label>Contraseña</label>
+                    <input type="password" id="vet-password" required placeholder="Contraseña para el veterinario">
                 </div>
                 <button type="submit" class="btn-submit">Registrar Veterinario</button>
             </form>
@@ -60,9 +76,10 @@
                 <div id="veterinarios-content">Cargando...</div>
             </div>
         </section>
+        <?php endif; ?>
 
-        <!-- SECCIÓN VER CITAS (solo lectura para admin) -->
-        <section id="citas-admin" class="view-section">
+        <!-- SECCIÓN VER CITAS -->
+        <section id="citas-admin" class="view-section <?php echo $_SESSION['user_role'] === 'vet' ? 'active' : ''; ?>">
             <h2>📅 Citas Agendadas (vía Telegram)</h2>
             <p class="section-hint">Las citas son agendadas por los clientes directamente desde Telegram.</p>
             <div class="list-container">

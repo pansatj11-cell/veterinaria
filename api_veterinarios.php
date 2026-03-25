@@ -39,15 +39,37 @@ if ($method === 'GET') {
 
     if (isset($input['nombre']) && !empty(trim($input['nombre']))) {
         $nombre = trim($input['nombre']);
+        $usuario = trim($input['usuario'] ?? '');
+        $password = $input['password'] ?? '';
         
-        $stmt = $db->prepare('INSERT INTO veterinarios (nombre) VALUES (:nombre)');
-        $stmt->bindParam(':nombre', $nombre);
+        if (empty($usuario) || empty($password)) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Usuario y contraseña son obligatorios']);
+            exit;
+        }
+
+        $passwordHash = password_hash($password, PASSWORD_DEFAULT);
         
-        if ($stmt->execute()) {
-            echo json_encode(['success' => true, 'message' => 'Veterinario agregado con éxito', 'id' => $db->lastInsertId()]);
-        } else {
-            http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Error al guardar en la base de datos']);
+        try {
+            $stmt = $db->prepare('INSERT INTO veterinarios (nombre, usuario, password) VALUES (:nombre, :usuario, :password)');
+            $stmt->bindParam(':nombre', $nombre);
+            $stmt->bindParam(':usuario', $usuario);
+            $stmt->bindParam(':password', $passwordHash);
+            
+            if ($stmt->execute()) {
+                echo json_encode(['success' => true, 'message' => 'Veterinario agregado con éxito', 'id' => $db->lastInsertId()]);
+            } else {
+                http_response_code(500);
+                echo json_encode(['success' => false, 'message' => 'Error al guardar en la base de datos']);
+            }
+        } catch (PDOException $e) {
+            if ($e->getCode() == 23000 || strpos($e->getMessage(), 'UNIQUE constraint failed') !== false) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'message' => 'El nombre de usuario ya está en uso']);
+            } else {
+                http_response_code(500);
+                echo json_encode(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
+            }
         }
     } else {
         http_response_code(400);

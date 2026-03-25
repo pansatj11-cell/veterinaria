@@ -9,7 +9,7 @@ if ($current_page === 'bot_webhook.php') {
     return;
 }
 
-if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {
+if (!isset($_SESSION['user_role']) || !in_array($_SESSION['user_role'], ['admin', 'vet'])) {
     if (strpos($_SERVER['REQUEST_URI'], 'api_') !== false || strpos($_SERVER['PHP_SELF'], 'api_') !== false) {
         header('Content-Type: application/json');
         echo json_encode(['success' => false, 'message' => 'No autorizado']);
