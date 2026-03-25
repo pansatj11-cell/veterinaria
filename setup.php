@@ -91,7 +91,14 @@ try {
         echo "Columna 'especie' añadida a 'mascotas'.\n";
     }
 
-    echo "Base de datos actualizada con éxito.\n";
+    // Migración: Agregar mascota_id a citas si no existe
+try {
+    $db->query("SELECT mascota_id FROM citas LIMIT 1");
+} catch (Exception $e) {
+    echo "Agregando columna mascota_id a citas...\n";
+    $db->exec("ALTER TABLE citas ADD COLUMN mascota_id INTEGER");
+}
+echo "¡Base de datos lista!\n";
     
 } catch (PDOException $e) {
     echo "Hubo un error al crear las tablas: " . $e->getMessage() . "\n";
