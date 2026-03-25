@@ -15,10 +15,12 @@ if ($method === 'GET') {
     $sql = '
         SELECT c.id, c.fecha, c.hora, c.estado, 
                cli.nombre AS cliente_nombre, cli.telegram_chat_id,
-               vet.nombre AS veterinario_nombre
+               vet.nombre AS veterinario_nombre,
+               m.nombre AS mascota_nombre
         FROM citas c
         JOIN clientes cli ON c.cliente_id = cli.id
         JOIN veterinarios vet ON c.veterinario_id = vet.id
+        LEFT JOIN mascotas m ON c.mascota_id = m.id
         ORDER BY c.fecha ASC, c.hora ASC
     ';
     $stmt = $db->query($sql);
