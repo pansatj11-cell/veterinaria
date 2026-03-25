@@ -332,7 +332,7 @@ try {
 } catch (Exception $e) {
     file_put_contents('error_log.txt', "[" . date('Y-m-d H:i:s') . "] Error fatal: " . $e->getMessage() . "\n", FILE_APPEND);
     if (isset($chatId)) {
-        sendMessage($chatId, "⚠️ Lo siento, ha ocurrido un error interno. Por favor, intenta de nuevo más tarde o escribe /start.");
+        sendMessage($chatId, "⚠️ Error Interno: " . $e->getMessage() . "\n\nPor favor, ejecuta setup.php de nuevo para asegurar que la base de datos esté bien.");
     }
 }
 ?>

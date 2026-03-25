@@ -92,15 +92,31 @@ try {
     }
 
     // Migración: Agregar mascota_id a citas si no existe
-try {
-    $db->query("SELECT mascota_id FROM citas LIMIT 1");
-} catch (Exception $e) {
-    echo "Agregando columna mascota_id a citas...\n";
-    $db->exec("ALTER TABLE citas ADD COLUMN mascota_id INTEGER");
-}
-echo "¡Base de datos lista!\n";
+    try {
+        $db->query("SELECT mascota_id FROM citas LIMIT 1");
+    } catch (Exception $e) {
+        $db->exec("ALTER TABLE citas ADD COLUMN mascota_id INTEGER");
+        echo "Columna 'mascota_id' añadida a 'citas'.\n";
+    }
+
+    // Migración: Agregar telegram_chat_id a clientes si no existe
+    try {
+        $db->query("SELECT telegram_chat_id FROM clientes LIMIT 1");
+    } catch (Exception $e) {
+        $db->exec("ALTER TABLE clientes ADD COLUMN telegram_chat_id INTEGER");
+        echo "Columna 'telegram_chat_id' añadida a 'clientes'.\n";
+    }
+
+    // Asegurar tabla de estados
+    $db->exec("CREATE TABLE IF NOT EXISTS estado_conversacion (
+        chat_id INTEGER PRIMARY KEY,
+        step TEXT,
+        data TEXT
+    )");
+
+    echo "¡Base de datos lista y actualizada!\n";
     
 } catch (PDOException $e) {
-    echo "Hubo un error al crear las tablas: " . $e->getMessage() . "\n";
+    echo "Hubo un error al procesar la base de datos: " . $e->getMessage() . "\n";
 }
 ?>
