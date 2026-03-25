@@ -12,6 +12,10 @@ $apiUrl = "https://api.telegram.org/bot$token";
 $content = file_get_contents("php://input");
 $update = json_decode($content, true);
 
+// REPORTAR ERRORES (Solo para depuración)
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
 // Sistema de LOGS para depuración
 file_put_contents('log_bot.txt', "[" . date('Y-m-d H:i:s') . "] Payload recibido: " . $content . "\n", FILE_APPEND);
 
@@ -123,6 +127,13 @@ function clearStep($chatId) {
     $stmt->execute([':chat_id' => $chatId]);
 }
 
+function obtenerMascotasPorCliente($clienteId) {
+    $db = getDB();
+    $stmt = $db->prepare("SELECT * FROM mascotas WHERE cliente_id = :id ORDER BY nombre ASC");
+    $stmt->execute([':id' => $clienteId]);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
 function mostrarMenuPrincipal($chatId, $nombreCliente) {
     $keyboard = ['inline_keyboard' => [[['text' => '📅 Agendar Cita', 'callback_data' => 'agendar']], [['text' => '📋 Ver Mis Citas', 'callback_data' => 'ver_citas']]]];
     sendMessage($chatId, "¡Hola <b>$nombreCliente</b>! 🐾\n¿Qué deseas hacer?", $keyboard);
@@ -145,37 +156,76 @@ if (isset($update['callback_query'])) {
     }
 
     if ($data === 'agendar') {
+        $pets = obtenerMascotasPorCliente($cliente['id']);
+        if (!empty($pets)) {
+            $btns = array_map(function($p) {
+                return [['text' => '🐾 ' . $p['nombre'], 'callback_data' => "selpet_start_{$p['id']}"]];
+            }, $pets);
+            $btns[] = [['text' => '➕ Agregar nueva mascota', 'callback_data' => "newpet_start"]];
+            sendMessage($chatId, "¿Para cuál de tus <b>mascotas</b> es la cita?", ['inline_keyboard' => $btns]);
+        } else {
+            setStep($chatId, 'preg_nombre');
+            sendMessage($chatId, "¡Entendido! Vamos a registrar a tu mascota. 😊\n\n¿Cuál es su <b>nombre</b>?");
+        }
+    } elseif (substr($data, 0, 13) === 'selpet_start_') {
+        $pid = substr($data, 13);
+        setStep($chatId, 'sel_vet', ['mid' => $pid]);
+        // Mostrar Veterinarios
         $vets = obtenerVeterinarios();
         $btns = array_map(function($v) {
             return [['text' => '🩺 '.$v['nombre'], 'callback_data' => 'vet_'.$v['id']]];
         }, $vets);
         sendMessage($chatId, "Selecciona un <b>veterinario</b>:", ['inline_keyboard' => $btns]);
+    } elseif ($data === 'newpet_start') {
+        setStep($chatId, 'preg_nombre');
+        sendMessage($chatId, "¿Cuál es el <b>nombre</b> de la nueva mascota? 🐾");
     } elseif (substr($data, 0, 4) === 'vet_') {
         $vid = substr($data, 4);
+        $sdata = $estado['data'] ?? [];
+        $sdata['vid'] = $vid;
+        setStep($chatId, 'sel_fecha', $sdata);
+        
         $btns = [];
         for ($i=1; $i<=7; $i++) {
             $f = date('Y-m-d', strtotime("+$i days"));
             if (date('N', strtotime($f)) <= 5) {
-                $btns[] = [['text' => date('D d/m', strtotime($f)), 'callback_data' => "f_{$vid}_{$f}"]];
+                $btns[] = [['text' => date('D d/m', strtotime($f)), 'callback_data' => "f_{$f}"]];
             }
         }
         sendMessage($chatId, "Selecciona una <b>fecha</b>:", ['inline_keyboard' => $btns]);
     } elseif (substr($data, 0, 2) === 'f_') {
-        [, $vid, $fecha] = explode('_', $data);
-        $hdis = obtenerHorariosDisponibles($fecha, $vid);
+        $fecha = substr($data, 2);
+        $sdata = $estado['data'];
+        $sdata['f'] = $fecha;
+        setStep($chatId, 'sel_hora', $sdata);
+        
+        $hdis = obtenerHorariosDisponibles($fecha, $sdata['vid']);
         $btns = []; $row = [];
         foreach ($hdis as $h) {
-            $row[] = ['text' => $h, 'callback_data' => "h_{$vid}_{$fecha}_{$h}"];
+            $row[] = ['text' => $h, 'callback_data' => "h_$h"];
             if (count($row) == 3) { $btns[] = $row; $row = []; }
         }
         if ($row) $btns[] = $row;
         sendMessage($chatId, "Elegir hora para $fecha:", ['inline_keyboard' => $btns]);
     } elseif (substr($data, 0, 2) === 'h_') {
-        [, $vid, $f, $h] = explode('_', $data);
-        // Iniciamos el cuestionario de la mascota
-        setStep($chatId, 'preg_nombre', ['vid' => $vid, 'f' => $f, 'h' => $h]);
-        sendMessage($chatId, "Para finalizar, cuéntanos sobre tu mascota. 🐾\n\n¿Cuál es el <b>nombre</b> de la mascota?");
+        $hora = substr($data, 2);
+        $sdata = $estado['data'];
+        $db = getDB();
+        
+        $stmtC = $db->prepare("INSERT INTO citas (cliente_id, veterinario_id, mascota_id, fecha, hora) VALUES (?, ?, ?, ?, ?)");
+        if ($stmtC->execute([$cliente['id'], $sdata['vid'], $sdata['mid'], $sdata['f'], $hora])) {
+            // Buscar nombre de mascota para el mensaje final
+            $stP = $db->prepare("SELECT nombre FROM mascotas WHERE id = ?");
+            $stP->execute([$sdata['mid']]);
+            $pname = $stP->fetchColumn();
+
+            clearStep($chatId);
+            sendMessage($chatId, "✅ <b>¡Cita agendada con éxito!</b>\n\n📅 <b>Fecha:</b> {$sdata['f']}\n⏰ <b>Hora:</b> $hora\n🐾 <b>Mascota:</b> $pname\n\n¡Te esperamos! 🐾");
+        } else {
+            sendMessage($chatId, "❌ Error al guardar la cita.");
+        }
     } elseif ($data === 'ver_citas') {
+        // ... (el código de ver_citas se mantiene igual)
         $db = getDB(); $hoy = date('Y-m-d');
         $s = $db->prepare("SELECT c.fecha, c.hora, v.nombre as vname, m.nombre as mname FROM citas c JOIN veterinarios v ON c.veterinario_id = v.id LEFT JOIN mascotas m ON c.mascota_id = m.id WHERE c.cliente_id = ? AND c.fecha >= ? ORDER BY c.fecha, c.hora");
         $s->execute([$cliente['id'], $hoy]);
@@ -273,13 +323,13 @@ if (isset($update['callback_query'])) {
             $stmtM->execute([$cliente['id'], $sdata['m_nombre'], $sdata['m_especie'], $sdata['m_raza'], $sdata['m_edad'], $sdata['m_vacunas']]);
             $mascotaId = $db->lastInsertId();
 
-            $stmtC = $db->prepare("INSERT INTO citas (cliente_id, veterinario_id, mascota_id, fecha, hora) VALUES (?, ?, ?, ?, ?)");
-            if ($stmtC->execute([$cliente['id'], $sdata['vid'], $mascotaId, $sdata['f'], $sdata['h']])) {
-                clearStep($chatId);
-                sendMessage($chatId, "✅ <b>¡Cita agendada con éxito!</b>\n\n📅 <b>Fecha:</b> {$sdata['f']}\n⏰ <b>Hora:</b> {$sdata['h']}\n🐾 <b>Mascota:</b> {$sdata['m_nombre']} ({$sdata['m_especie']})\n\nEl cobro se realizará dependiendo de los servicios brindados. ¡Te esperamos! 🐾");
-            } else {
-                sendMessage($chatId, "❌ Hubo un error al guardar tu cita.");
-            }
+            // Despues de registrar mascota, PASAR A SELECCION DE VETERINARIO
+            setStep($chatId, 'sel_vet', ['mid' => $mascotaId]);
+            $vets = obtenerVeterinarios();
+            $btns = array_map(function($v) {
+                return [['text' => '🩺 '.$v['nombre'], 'callback_data' => 'vet_'.$v['id']]];
+            }, $vets);
+            sendMessage($chatId, "✅ Mascota registrada.\n\nAhora, selecciona un <b>veterinario</b>:", ['inline_keyboard' => $btns]);
         }
         exit;
     }

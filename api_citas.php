@@ -54,6 +54,8 @@ if ($method === 'GET') {
     $fecha = $input['fecha'] ?? null; // Formato YYYY-MM-DD
     $hora = $input['hora'] ?? null;   // Formato HH:MM
     // ... resto del código post ...
+    $mascota_id = $input['mascota_id'] ?? null;
+
     if (!$cliente_id || !$veterinario_id || !$fecha || !$hora) {
         http_response_code(400);
         echo json_encode(['success' => false, 'message' => 'Todos los campos son obligatorios.']);
@@ -86,9 +88,10 @@ if ($method === 'GET') {
         echo json_encode(['success' => false, 'message' => 'Horario ocupado.']);
         exit;
     }
-    $stmtInsert = $db->prepare('INSERT INTO citas (cliente_id, veterinario_id, fecha, hora) VALUES (:cliente_id, :veterinario_id, :fecha, :hora)');
+    $stmtInsert = $db->prepare('INSERT INTO citas (cliente_id, veterinario_id, mascota_id, fecha, hora) VALUES (:cliente_id, :veterinario_id, :mascota_id, :fecha, :hora)');
     $stmtInsert->bindParam(':cliente_id', $cliente_id);
     $stmtInsert->bindParam(':veterinario_id', $veterinario_id);
+    $stmtInsert->bindParam(':mascota_id', $mascota_id);
     $stmtInsert->bindParam(':fecha', $fecha);
     $stmtInsert->bindParam(':hora', $horaLimpia);
     if ($stmtInsert->execute()) {
