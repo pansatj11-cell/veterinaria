@@ -250,6 +250,67 @@ try {
                 $txt .= "📅 {$c['fecha']} a las {$c['hora']}\n🩺 Vet: {$c['vname']}$pet\n\n";
             }
             sendMessage($chatId, empty($cs) ? "No tienes citas agendadas." : $txt);
+        } elseif (substr($data, 0, 13) === 'confirm_cita_') {
+            // CONFIRMAR CITA DE CONTROL
+            $citaId = substr($data, 13);
+            $db = getDB();
+            $stmt = $db->prepare("UPDATE citas SET estado = 'confirmada' WHERE id = ?");
+            $stmt->execute([$citaId]);
+            sendMessage($chatId, "✅ <b>¡Cita confirmada!</b>\n\nTe esperamos en la fecha y hora indicadas. 🐾");
+
+        } elseif (substr($data, 0, 14) === 'postpone_cita_') {
+            // APLAZAR CITA - Mostrar fechas disponibles
+            $citaId = substr($data, 14);
+            setStep($chatId, 'postpone_fecha', ['cita_id' => $citaId]);
+            $btns = [];
+            for ($i = 1; $i <= 7; $i++) {
+                $f = date('Y-m-d', strtotime("+$i days"));
+                if (date('N', strtotime($f)) <= 5) {
+                    $btns[] = [['text' => date('D d/m', strtotime($f)), 'callback_data' => "pf_{$citaId}_{$f}"]];
+                }
+            }
+            sendMessage($chatId, "📅 ¿Qué <b>fecha</b> te queda mejor?", ['inline_keyboard' => $btns]);
+
+        } elseif (substr($data, 0, 3) === 'pf_') {
+            // APLAZAR - Seleccionar hora
+            $parts = explode('_', $data);
+            $citaId = $parts[1];
+            $nuevaFecha = $parts[2];
+
+            // Obtener vet_id de la cita original para buscar horarios disponibles
+            $db = getDB();
+            $stmtCita = $db->prepare("SELECT veterinario_id FROM citas WHERE id = ?");
+            $stmtCita->execute([$citaId]);
+            $vetId = $stmtCita->fetchColumn();
+
+            setStep($chatId, 'postpone_hora', ['cita_id' => $citaId, 'fecha' => $nuevaFecha]);
+            $hdis = obtenerHorariosDisponibles($nuevaFecha, $vetId);
+            $btns = []; $row = [];
+            foreach ($hdis as $h) {
+                $row[] = ['text' => $h, 'callback_data' => "ph_{$citaId}_{$nuevaFecha}_{$h}"];
+                if (count($row) == 3) { $btns[] = $row; $row = []; }
+            }
+            if ($row) $btns[] = $row;
+            if (empty($btns)) {
+                sendMessage($chatId, "❌ No hay horarios disponibles para esa fecha. Intenta con otra.");
+                clearStep($chatId);
+            } else {
+                sendMessage($chatId, "⏰ Horarios disponibles para <b>$nuevaFecha</b>:", ['inline_keyboard' => $btns]);
+            }
+
+        } elseif (substr($data, 0, 3) === 'ph_') {
+            // APLAZAR - Guardar nueva fecha y hora
+            $parts = explode('_', $data);
+            $citaId = $parts[1];
+            $nuevaFecha = $parts[2];
+            $nuevaHora = $parts[3];
+
+            $db = getDB();
+            $stmt = $db->prepare("UPDATE citas SET fecha = ?, hora = ?, estado = 'confirmada' WHERE id = ?");
+            $stmt->execute([$nuevaFecha, $nuevaHora, $citaId]);
+            clearStep($chatId);
+            sendMessage($chatId, "✅ <b>¡Cita reagendada con éxito!</b>\n\n📅 <b>Nueva fecha:</b> $nuevaFecha\n⏰ <b>Nueva hora:</b> $nuevaHora\n\n¡Te esperamos! 🐾");
+
         } elseif ($data === 'registrar_nueva') {
             setStep($chatId, 'reg_nombre');
             sendMessage($chatId, "¡Genial! Vamos a registrarte. 😊\n\n¿Cuál es tu <b>nombre completo</b>?");
