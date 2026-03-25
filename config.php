@@ -5,7 +5,8 @@
 // Token del Bot de Telegram (Obtenido de @BotFather)
 define('TELEGRAM_BOT_TOKEN', '8541502378:AAHzlqZlpHEnntJoCB8AqZFDlLiudTZNYiE');
 
-// Contraseña del Panel Administrativo
+// Usuario y Contraseña del Panel Administrativo
+define('ADMIN_USER', 'admin');
 define('ADMIN_PASSWORD', 'TomaSjimeneZ123459');
 
 // Ruta a la base de datos

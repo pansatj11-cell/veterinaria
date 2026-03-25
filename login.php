@@ -13,8 +13,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $usuario = trim($_POST['usuario'] ?? '');
     $password = $_POST['password'] ?? '';
 
-    // 1. Intentar como Admin (Hardcoded)
-    if ($usuario === 'admin' && $password === ADMIN_PASSWORD) {
+    // 1. Intentar como Admin (Desde config.php)
+    if ($usuario === ADMIN_USER && $password === ADMIN_PASSWORD) {
         $_SESSION['admin_logged_in'] = true;
         $_SESSION['user_role'] = 'admin';
         $_SESSION['user_name'] = 'Administrador';
