@@ -148,7 +148,48 @@ if (isset($update['callback_query'])) {
         $vets = obtenerVeterinarios();
         $btns = array_map(fn($v) => [['text' => '🩺 '.$v['nombre'], 'callback_data' => 'vet_'.$v['id']]], $vets);
         sendMessage($chatId, "Selecciona un <b>veterinario</b>:", ['inline_keyboard' => $btns]);
-    } // ... rest of callback logic ...
+    } elseif (str_starts_with($data, 'vet_')) {
+        $vid = substr($data, 4);
+        $btns = [];
+        for ($i=1; $i<=7; $i++) {
+            $f = date('Y-m-d', strtotime("+$i days"));
+            if (date('N', strtotime($f)) <= 5) {
+                $btns[] = [['text' => date('D d/m', strtotime($f)), 'callback_data' => "f_{$vid}_{$f}"]];
+            }
+        }
+        sendMessage($chatId, "Selecciona una <b>fecha</b>:", ['inline_keyboard' => $btns]);
+    } elseif (str_starts_with($data, 'f_')) {
+        [, $vid, $fecha] = explode('_', $data);
+        $hdis = obtenerHorariosDisponibles($fecha, $vid);
+        $btns = []; $row = [];
+        foreach ($hdis as $h) {
+            $row[] = ['text' => $h, 'callback_data' => "h_{$vid}_{$fecha}_{$h}"];
+            if (count($row) == 3) { $btns[] = $row; $row = []; }
+        }
+        if ($row) $btns[] = $row;
+        sendMessage($chatId, "Elegir hora para $fecha:", ['inline_keyboard' => $btns]);
+    } elseif (str_starts_with($data, 'h_')) {
+        [, $vid, $f, $h] = explode('_', $data);
+        // Iniciamos el cuestionario de la mascota
+        setStep($chatId, 'preg_nombre', ['vid' => $vid, 'f' => $f, 'h' => $h]);
+        sendMessage($chatId, "Para finalizar, cuéntanos sobre tu mascota. 🐾\n\n¿Cuál es el <b>nombre</b> de la mascota?");
+    } elseif ($data === 'ver_citas') {
+        $db = getDB(); $hoy = date('Y-m-d');
+        $s = $db->prepare("SELECT c.fecha, c.hora, v.nombre as vname, m.nombre as mname FROM citas c JOIN veterinarios v ON c.veterinario_id = v.id LEFT JOIN mascotas m ON c.mascota_id = m.id WHERE c.cliente_id = ? AND c.fecha >= ? ORDER BY c.fecha, c.hora");
+        $s->execute([$cliente['id'], $hoy]);
+        $cs = $s->fetchAll();
+        $txt = "📋 <b>Tus próximas citas:</b>\n\n";
+        foreach ($cs as $c) {
+            $pet = $c['mname'] ? " (Mascota: {$c['mname']})" : "";
+            $txt .= "📅 {$c['fecha']} a las {$c['hora']}\n🩺 Vet: {$c['vname']}$pet\n\n";
+        }
+        sendMessage($chatId, empty($cs) ? "No tienes citas agendadas." : $txt);
+    } elseif ($data === 'registrar_nueva') {
+        setStep($chatId, 'reg_nombre');
+        sendMessage($chatId, "¡Genial! Vamos a registrarte. 😊\n\n¿Cuál es tu <b>nombre completo</b>?");
+    } elseif ($data === 'check_contact') {
+        sendContact($chatId, "📱 Por favor, presiona el botón de abajo para compartir tu número:");
+    }
 } elseif (isset($update['message'])) {
     $msg = $update['message'];
     $text = trim($msg['text'] ?? '');
