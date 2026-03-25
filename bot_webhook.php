@@ -144,11 +144,10 @@ $chatId = $update['callback_query']['message']['chat']['id'] ?? $update['message
 if (!$chatId) exit;
 
 $cliente = buscarClientePorChatId($chatId);
-$estado = getStep($chatId);
-
-if (isset($update['callback_query'])) {
+$if (isset($update['callback_query'])) {
     $cb = $update['callback_query'];
     $data = $cb['data'];
+    $chatId = $cb['message']['chat']['id'];
     
     if (!$cliente && !in_array($data, ['registrar_nueva', 'check_contact'])) {
         sendMessage($chatId, "⚠️ No vinculado. Pulsa /start.");
@@ -170,7 +169,6 @@ if (isset($update['callback_query'])) {
     } elseif (substr($data, 0, 13) === 'selpet_start_') {
         $pid = substr($data, 13);
         setStep($chatId, 'sel_vet', ['mid' => $pid]);
-        // Mostrar Veterinarios
         $vets = obtenerVeterinarios();
         $btns = array_map(function($v) {
             return [['text' => '🩺 '.$v['nombre'], 'callback_data' => 'vet_'.$v['id']]];
@@ -180,11 +178,11 @@ if (isset($update['callback_query'])) {
         setStep($chatId, 'preg_nombre');
         sendMessage($chatId, "¿Cuál es el <b>nombre</b> de la nueva mascota? 🐾");
     } elseif (substr($data, 0, 4) === 'vet_') {
+        if (!$estado) { sendMessage($chatId, "⚠️ Sesión expirada. Pulsa /start."); exit; }
         $vid = substr($data, 4);
         $sdata = $estado['data'] ?? [];
         $sdata['vid'] = $vid;
         setStep($chatId, 'sel_fecha', $sdata);
-        
         $btns = [];
         for ($i=1; $i<=7; $i++) {
             $f = date('Y-m-d', strtotime("+$i days"));
@@ -194,11 +192,11 @@ if (isset($update['callback_query'])) {
         }
         sendMessage($chatId, "Selecciona una <b>fecha</b>:", ['inline_keyboard' => $btns]);
     } elseif (substr($data, 0, 2) === 'f_') {
+        if (!$estado || !isset($estado['data']['vid'])) { sendMessage($chatId, "⚠️ Sesión expirada. Pulsa /start."); exit; }
         $fecha = substr($data, 2);
         $sdata = $estado['data'];
         $sdata['f'] = $fecha;
         setStep($chatId, 'sel_hora', $sdata);
-        
         $hdis = obtenerHorariosDisponibles($fecha, $sdata['vid']);
         $btns = []; $row = [];
         foreach ($hdis as $h) {
@@ -208,24 +206,21 @@ if (isset($update['callback_query'])) {
         if ($row) $btns[] = $row;
         sendMessage($chatId, "Elegir hora para $fecha:", ['inline_keyboard' => $btns]);
     } elseif (substr($data, 0, 2) === 'h_') {
+        if (!$estado || !isset($estado['data']['f'])) { sendMessage($chatId, "⚠️ Sesión expirada. Pulsa /start."); exit; }
         $hora = substr($data, 2);
         $sdata = $estado['data'];
         $db = getDB();
-        
         $stmtC = $db->prepare("INSERT INTO citas (cliente_id, veterinario_id, mascota_id, fecha, hora) VALUES (?, ?, ?, ?, ?)");
         if ($stmtC->execute([$cliente['id'], $sdata['vid'], $sdata['mid'], $sdata['f'], $hora])) {
-            // Buscar nombre de mascota para el mensaje final
             $stP = $db->prepare("SELECT nombre FROM mascotas WHERE id = ?");
             $stP->execute([$sdata['mid']]);
             $pname = $stP->fetchColumn();
-
             clearStep($chatId);
             sendMessage($chatId, "✅ <b>¡Cita agendada con éxito!</b>\n\n📅 <b>Fecha:</b> {$sdata['f']}\n⏰ <b>Hora:</b> $hora\n🐾 <b>Mascota:</b> $pname\n\n¡Te esperamos! 🐾");
         } else {
             sendMessage($chatId, "❌ Error al guardar la cita.");
         }
     } elseif ($data === 'ver_citas') {
-        // ... (el código de ver_citas se mantiene igual)
         $db = getDB(); $hoy = date('Y-m-d');
         $s = $db->prepare("SELECT c.fecha, c.hora, v.nombre as vname, m.nombre as mname FROM citas c JOIN veterinarios v ON c.veterinario_id = v.id LEFT JOIN mascotas m ON c.mascota_id = m.id WHERE c.cliente_id = ? AND c.fecha >= ? ORDER BY c.fecha, c.hora");
         $s->execute([$cliente['id'], $hoy]);
@@ -241,6 +236,9 @@ if (isset($update['callback_query'])) {
         sendMessage($chatId, "¡Genial! Vamos a registrarte. 😊\n\n¿Cuál es tu <b>nombre completo</b>?");
     } elseif ($data === 'check_contact') {
         sendContact($chatId, "📱 Por favor, presiona el botón de abajo para compartir tu número:");
+    }
+} elseif (isset($update['message'])) {
+l botón de abajo para compartir tu número:");
     }
 } elseif (isset($update['message'])) {
     $msg = $update['message'];
