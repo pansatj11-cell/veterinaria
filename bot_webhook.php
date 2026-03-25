@@ -144,7 +144,9 @@ $chatId = $update['callback_query']['message']['chat']['id'] ?? $update['message
 if (!$chatId) exit;
 
 $cliente = buscarClientePorChatId($chatId);
-$if (isset($update['callback_query'])) {
+$estado = getStep($chatId);
+
+if (isset($update['callback_query'])) {
     $cb = $update['callback_query'];
     $data = $cb['data'];
     $chatId = $cb['message']['chat']['id'];
@@ -238,9 +240,6 @@ $if (isset($update['callback_query'])) {
         sendContact($chatId, "📱 Por favor, presiona el botón de abajo para compartir tu número:");
     }
 } elseif (isset($update['message'])) {
-l botón de abajo para compartir tu número:");
-    }
-} elseif (isset($update['message'])) {
     $msg = $update['message'];
     $text = trim($msg['text'] ?? '');
 
@@ -332,5 +331,7 @@ l botón de abajo para compartir tu número:");
         exit;
     }
 }
+
+?>
 
 ?>
