@@ -15,6 +15,7 @@ try {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         cliente_id INTEGER NOT NULL,
         nombre TEXT NOT NULL,
+        especie TEXT,
         raza TEXT,
         edad TEXT,
         vacunas TEXT,
@@ -74,6 +75,20 @@ try {
     if (!$hasMascotaId) {
         $db->exec("ALTER TABLE citas ADD COLUMN mascota_id INTEGER REFERENCES mascotas(id) ON DELETE SET NULL");
         echo "Columna 'mascota_id' añadida a 'citas'.\n";
+    }
+
+    // Migración: Asegurar que 'mascotas' tenga 'especie'
+    $resM = $db->query("PRAGMA table_info(mascotas)")->fetchAll(PDO::FETCH_ASSOC);
+    $hasEspecie = false;
+    foreach ($resM as $col) {
+        if ($col['name'] === 'especie') {
+            $hasEspecie = true;
+            break;
+        }
+    }
+    if (!$hasEspecie) {
+        $db->exec("ALTER TABLE mascotas ADD COLUMN especie TEXT");
+        echo "Columna 'especie' añadida a 'mascotas'.\n";
     }
 
     echo "Base de datos actualizada con éxito.\n";

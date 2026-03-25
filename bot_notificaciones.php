@@ -44,10 +44,12 @@ if ($is_test) {
     $sql = "
         SELECT c.id, c.hora, c.estado, 
                cli.nombre AS cliente_nombre, cli.telegram_chat_id,
-               vet.nombre AS veterinario_nombre
+               vet.nombre AS veterinario_nombre,
+               m.nombre AS mascota_nombre
         FROM citas c
         JOIN clientes cli ON c.cliente_id = cli.id
         JOIN veterinarios vet ON c.veterinario_id = vet.id
+        LEFT JOIN mascotas m ON c.mascota_id = m.id
         WHERE c.fecha = :fecha AND c.estado = 'pendiente'
     ";
     $stmt = $db->prepare($sql);
@@ -61,10 +63,12 @@ if ($is_test) {
     $sql = "
         SELECT c.id, c.hora, c.estado, 
                cli.nombre AS cliente_nombre, cli.telegram_chat_id,
-               vet.nombre AS veterinario_nombre
+               vet.nombre AS veterinario_nombre,
+               m.nombre AS mascota_nombre
         FROM citas c
         JOIN clientes cli ON c.cliente_id = cli.id
         JOIN veterinarios vet ON c.veterinario_id = vet.id
+        LEFT JOIN mascotas m ON c.mascota_id = m.id
         WHERE c.fecha = :fecha AND c.estado = 'pendiente'
     ";
     $stmt = $db->prepare($sql);
@@ -84,7 +88,7 @@ foreach ($citas as $cita) {
         if ($is_test) {
             $mensaje .= "🚨 <i>MENSAJE DE PRUEBA DEL SISTEMA</i> 🚨\n";
         }
-        $mensaje .= "Te recordamos que tienes una cita programada para el día de **mañana**.\n\n";
+        $mensaje .= "Te recordamos que tienes una cita para <b>" . htmlspecialchars($cita['mascota_nombre'] ?? 'tu mascota') . "</b> el día de **mañana**.\n\n";
         $mensaje .= "🩺 <b>Veterinario:</b> " . htmlspecialchars($cita['veterinario_nombre']) . "\n";
         $mensaje .= "⏰ <b>Hora:</b> " . $cita['hora'] . "\n\n";
         $mensaje .= "¡Por favor, sé puntual!\nSi no puedes asistir, comunícate con nosotros.\nGracias.";

@@ -215,8 +215,12 @@ if (isset($update['callback_query'])) {
             }
         } elseif ($step === 'preg_nombre') {
             $sdata['m_nombre'] = $text;
+            setStep($chatId, 'preg_especie', $sdata);
+            sendMessage($chatId, "Entendido. ¿Qué <b>animal</b> es $text? (Perro, gato, conejo, etc.)");
+        } elseif ($step === 'preg_especie') {
+            $sdata['m_especie'] = $text;
             setStep($chatId, 'preg_raza', $sdata);
-            sendMessage($chatId, "Entendido. ¿De qué <b>raza</b> es $text?");
+            sendMessage($chatId, "¿De qué <b>raza</b> es?");
         } elseif ($step === 'preg_raza') {
             $sdata['m_raza'] = $text;
             setStep($chatId, 'preg_edad', $sdata);
@@ -230,15 +234,15 @@ if (isset($update['callback_query'])) {
             $db = getDB();
             
             // 1. Guardar o actualizar mascota
-            $stmtM = $db->prepare("INSERT INTO mascotas (cliente_id, nombre, raza, edad, vacunas) VALUES (?, ?, ?, ?, ?)");
-            $stmtM->execute([$cliente['id'], $sdata['m_nombre'], $sdata['m_raza'], $sdata['m_edad'], $sdata['m_vacunas']]);
+            $stmtM = $db->prepare("INSERT INTO mascotas (cliente_id, nombre, especie, raza, edad, vacunas) VALUES (?, ?, ?, ?, ?, ?)");
+            $stmtM->execute([$cliente['id'], $sdata['m_nombre'], $sdata['m_especie'], $sdata['m_raza'], $sdata['m_edad'], $sdata['m_vacunas']]);
             $mascotaId = $db->lastInsertId();
 
             // 2. Guardar cita
             $stmtC = $db->prepare("INSERT INTO citas (cliente_id, veterinario_id, mascota_id, fecha, hora) VALUES (?, ?, ?, ?, ?)");
             if ($stmtC->execute([$cliente['id'], $sdata['vid'], $mascotaId, $sdata['f'], $sdata['h']])) {
                 clearStep($chatId);
-                sendMessage($chatId, "✅ <b>¡Cita agendada con éxito!</b>\n\n📅 <b>Fecha:</b> {$sdata['f']}\n⏰ <b>Hora:</b> {$sdata['h']}\n🐾 <b>Mascota:</b> {$sdata['m_nombre']}\n\nEl cobro se realizará dependiendo de los servicios brindados. ¡Te esperamos! 🐾");
+                sendMessage($chatId, "✅ <b>¡Cita agendada con éxito!</b>\n\n📅 <b>Fecha:</b> {$sdata['f']}\n⏰ <b>Hora:</b> {$sdata['h']}\n🐾 <b>Mascota:</b> {$sdata['m_nombre']} ({$sdata['m_especie']})\n\nEl cobro se realizará dependiendo de los servicios brindados. ¡Te esperamos! 🐾");
             } else {
                 sendMessage($chatId, "❌ Hubo un error al guardar tu cita.");
             }

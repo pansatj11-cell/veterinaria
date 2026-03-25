@@ -75,6 +75,7 @@ require_once __DIR__ . '/auth_check.php';
                 card.className = 'card pet-card';
                 card.innerHTML = `
                     <h3>${pet.nombre}</h3>
+                    <p><b>Tipo:</b> ${pet.especie || 'N/A'}</p>
                     <p><b>Raza:</b> ${pet.raza}</p>
                     <p><b>Dueño:</b> ${pet.cliente_nombre}</p>
                     <button onclick="viewHistory(${pet.id}, '${pet.nombre}')" class="btn-small">Ver Historial</button>
