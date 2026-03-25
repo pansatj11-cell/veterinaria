@@ -248,23 +248,28 @@ button.btn-submit:hover {
 .pet-nav-item {
     display: flex;
     align-items: center;
-    padding: 12px;
-    margin-bottom: 8px;
-    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 12px;
+    border-radius: 12px;
     cursor: pointer;
-    transition: all 0.2s;
-    border: 1px solid #eee;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid #e0e6ed;
+    background: #ffffff;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
 }
 
 .pet-nav-item:hover {
-    background: #f0f7ff;
-    border-color: #007bff;
+    background: #f8fbff;
+    border-color: #4a90e2;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(74, 144, 226, 0.1);
 }
 
 .pet-nav-item.active {
-    background: #007bff;
+    background: #4a90e2;
     color: white;
-    border-color: #0056b3;
+    border-color: #357abd;
+    box-shadow: 0 4px 15px rgba(74, 144, 226, 0.3);
 }
 
 .pet-icon { font-size: 1.5rem; margin-right: 12px; }

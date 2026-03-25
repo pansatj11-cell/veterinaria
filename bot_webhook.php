@@ -235,7 +235,7 @@ try {
                 $stP->execute([$sdata['mid']]);
                 $pname = $stP->fetchColumn();
                 clearStep($chatId);
-                sendMessage($chatId, "✅ <b>¡Cita agendada con éxito!</b>\n\n📅 <b>Fecha:</b> {$sdata['f']}\n⏰ <b>Hora:</b> $hora\n🐾 <b>Mascota:</b> $pname\n\n¡Te esperamos! 🐾");
+                sendMessage($chatId, "✅ <b>¡Cita agendada con éxito!</b>\n\n📅 <b>Fecha:</b> {$sdata['f']}\n⏰ <b>Hora:</b> $hora\n🐾 <b>Mascota:</b> $pname\n\n⚠️ <i>Nota: El precio final depende de los servicios realizados, medicamentos o terapias necesarias durante la consulta.</i>\n\n¡Te esperamos! 🐾");
             } else {
                 sendMessage($chatId, "❌ Error al guardar la cita.");
             }
