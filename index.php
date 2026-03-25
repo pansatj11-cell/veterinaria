@@ -17,6 +17,7 @@
             <button class="nav-btn active" data-target="clientes">Clientes</button>
             <button class="nav-btn" data-target="veterinarios">Veterinarios</button>
             <button class="nav-btn" data-target="citas-admin">Ver Citas</button>
+            <a href="historial.php" class="nav-link-btn">📋 Historial Clínico</a>
         </nav>
     </header>
 

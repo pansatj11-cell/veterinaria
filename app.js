@@ -175,7 +175,8 @@ async function cargarListaCitas() {
             <div class="list-item cita-item">
                 <div class="item-info">
                     📅 <b>${c.fecha}</b> a las <b>${c.hora}</b><br>
-                    🐶 Cliente: ${c.cliente_nombre}<br>
+                    🐶 Mascota: <b>${c.mascota_nombre || 'No especificada'}</b><br>
+                    👤 Cliente: ${c.cliente_nombre}<br>
                     🩺 Vet: ${c.veterinario_nombre}<br>
                     Estado: ${c.estado}
                 </div>
