@@ -24,6 +24,7 @@
                 <button class="nav-btn" data-target="veterinarios">Veterinarios</button>
             <?php endif; ?>
             <button class="nav-btn <?php echo $_SESSION['user_role'] === 'vet' ? 'active' : ''; ?>" data-target="citas-admin">Ver Citas</button>
+            <button class="nav-btn" data-target="agendar-control">📋 Agendar Control</button>
             <a href="historial.php" class="nav-link-btn">📋 Historial Clínico</a>
         </nav>
     </header>
@@ -80,11 +81,62 @@
 
         <!-- SECCIÓN VER CITAS -->
         <section id="citas-admin" class="view-section <?php echo $_SESSION['user_role'] === 'vet' ? 'active' : ''; ?>">
-            <h2>📅 Citas Agendadas (vía Telegram)</h2>
-            <p class="section-hint">Las citas son agendadas por los clientes directamente desde Telegram.</p>
+            <h2>📅 Citas Agendadas</h2>
+            <p class="section-hint">Citas agendadas por clientes (Telegram) y citas de control (Panel Web).</p>
             <div class="list-container">
                 <div id="citas-content">Cargando...</div>
             </div>
+        </section>
+
+        <!-- SECCIÓN AGENDAR CITA DE CONTROL -->
+        <section id="agendar-control" class="view-section">
+            <h2>🩺 Agendar Cita de Control</h2>
+            <p class="section-hint">Agenda una cita de seguimiento para una mascota ya registrada. Se enviará notificación al cliente por Telegram.</p>
+            <form id="form-control">
+                <div class="form-group">
+                    <label>Cliente</label>
+                    <select id="ctrl-cliente" required>
+                        <option value="">-- Seleccionar Cliente --</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Mascota</label>
+                    <select id="ctrl-mascota" required disabled>
+                        <option value="">-- Primero selecciona un cliente --</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Veterinario</label>
+                    <select id="ctrl-veterinario" required>
+                        <option value="">-- Seleccionar Veterinario --</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Fecha</label>
+                    <input type="date" id="ctrl-fecha" required>
+                </div>
+                <div class="form-group">
+                    <label>Hora</label>
+                    <select id="ctrl-hora" required>
+                        <option value="">-- Seleccionar Hora --</option>
+                        <option value="08:00">08:00</option>
+                        <option value="08:30">08:30</option>
+                        <option value="09:00">09:00</option>
+                        <option value="09:30">09:30</option>
+                        <option value="10:00">10:00</option>
+                        <option value="10:30">10:30</option>
+                        <option value="11:00">11:00</option>
+                        <option value="14:00">14:00</option>
+                        <option value="14:30">14:30</option>
+                        <option value="15:00">15:00</option>
+                        <option value="15:30">15:30</option>
+                        <option value="16:00">16:00</option>
+                        <option value="16:30">16:30</option>
+                        <option value="17:00">17:00</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn-submit">📩 Agendar y Notificar al Cliente</button>
+            </form>
         </section>
     </main>
 
