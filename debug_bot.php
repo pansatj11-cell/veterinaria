@@ -62,5 +62,23 @@ if (@file_put_contents($testFile, "test " . date('Y-m-d H:i:s'))) {
     echo "   ❌ No se puede escribir en el directorio. El bot no podrá registrar logs ni crear la base de datos.\n";
 }
 
+// 5. Verificar Citas Recientes
+echo "5. Verificando las últimas 5 citas...\n";
+try {
+    $sql = "SELECT c.id, c.fecha, c.hora, c.mascota_id, m.nombre as pet_name 
+            FROM citas c 
+            LEFT JOIN mascotas m ON c.mascota_id = m.id 
+            ORDER BY c.id DESC LIMIT 5";
+    $stmt = $db->query($sql);
+    $citas = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    foreach ($citas as $c) {
+        $mid = $c['mascota_id'] ?? 'NULL';
+        $pname = $c['pet_name'] ?? 'N/A';
+        echo "   - Cita ID: {$c['id']} | Fecha: {$c['fecha']} | Mascota ID: $mid | Nombre Pet: $pname\n";
+    }
+} catch (Exception $e) {
+    echo "   ❌ ERROR al leer citas: " . $e->getMessage() . "\n";
+}
+
 echo "\n=== FIN DEL DIAGNÓSTICO ===\n";
 ?>
