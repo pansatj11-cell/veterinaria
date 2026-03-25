@@ -236,8 +236,9 @@ button.btn-submit:hover {
     background: white;
     border-radius: 12px;
     padding: 15px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.08);
     overflow-y: auto;
+    z-index: 10;
 }
 
 .pet-nav-list {
@@ -248,27 +249,36 @@ button.btn-submit:hover {
 .pet-nav-item {
     display: flex;
     align-items: center;
+    width: 100%;
+    text-align: left;
     padding: 15px;
     margin-bottom: 12px;
     border-radius: 12px;
     cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     border: 1px solid #e0e6ed;
     background: #ffffff;
     box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    color: inherit;
+    font-size: inherit;
 }
 
 .pet-nav-item:hover {
-    background: #f8fbff;
-    border-color: #4a90e2;
+    background: #f0f7ff;
+    border-color: var(--primary-color);
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(74, 144, 226, 0.1);
+    box-shadow: 0 4px 12px rgba(74, 144, 226, 0.15);
+}
+
+.pet-nav-item:active {
+    transform: translateY(0) scale(0.98);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
 }
 
 .pet-nav-item.active {
-    background: #4a90e2;
+    background: var(--primary-color);
     color: white;
-    border-color: #357abd;
+    border-color: var(--primary-hover);
     box-shadow: 0 4px 15px rgba(74, 144, 226, 0.3);
 }
 

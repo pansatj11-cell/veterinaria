@@ -91,7 +91,7 @@ require_once __DIR__ . '/auth_check.php';
                 }
 
                 pets.forEach(pet => {
-                    const item = document.createElement('div');
+                    const item = document.createElement('button');
                     item.className = 'pet-nav-item';
                     item.id = `pet-item-${pet.id}`;
                     item.onclick = () => viewHistory(pet);
