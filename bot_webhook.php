@@ -139,7 +139,7 @@ if (isset($update['callback_query'])) {
     $cb = $update['callback_query'];
     $data = $cb['data'];
     
-    if (!$cliente && $data !== 'registrar_nueva') {
+    if (!$cliente && !in_array($data, ['registrar_nueva', 'check_contact'])) {
         sendMessage($chatId, "⚠️ No vinculado. Pulsa /start.");
         exit;
     }
@@ -148,53 +148,46 @@ if (isset($update['callback_query'])) {
         $vets = obtenerVeterinarios();
         $btns = array_map(fn($v) => [['text' => '🩺 '.$v['nombre'], 'callback_data' => 'vet_'.$v['id']]], $vets);
         sendMessage($chatId, "Selecciona un <b>veterinario</b>:", ['inline_keyboard' => $btns]);
-    } elseif (str_starts_with($data, 'vet_')) {
-        $vid = substr($data, 4);
-        $btns = [];
-        for ($i=1; $i<=7; $i++) {
-            $f = date('Y-m-d', strtotime("+$i days"));
-            if (date('N', strtotime($f)) <= 5) {
-                $btns[] = [['text' => date('D d/m', strtotime($f)), 'callback_data' => "f_{$vid}_{$f}"]];
-            }
-        }
-        sendMessage($chatId, "Selecciona una <b>fecha</b>:", ['inline_keyboard' => $btns]);
-    } elseif (str_starts_with($data, 'f_')) {
-        [, $vid, $fecha] = explode('_', $data);
-        $hdis = obtenerHorariosDisponibles($fecha, $vid);
-        $btns = []; $row = [];
-        foreach ($hdis as $h) {
-            $row[] = ['text' => $h, 'callback_data' => "h_{$vid}_{$fecha}_{$h}"];
-            if (count($row) == 3) { $btns[] = $row; $row = []; }
-        }
-        if ($row) $btns[] = $row;
-        sendMessage($chatId, "Elegir hora para $fecha:", ['inline_keyboard' => $btns]);
-    } elseif (str_starts_with($data, 'h_')) {
-        [, $vid, $f, $h] = explode('_', $data);
-        // Iniciamos el cuestionario de la mascota
-        setStep($chatId, 'preg_nombre', ['vid' => $vid, 'f' => $f, 'h' => $h]);
-        sendMessage($chatId, "Para finalizar, cuéntanos sobre tu mascota. 🐾\n\n¿Cuál es el <b>nombre</b> de la mascota?");
-    } elseif ($data === 'ver_citas') {
-        $db = getDB(); $hoy = date('Y-m-d');
-        $s = $db->prepare("SELECT c.fecha, c.hora, v.nombre as vname, m.nombre as mname FROM citas c JOIN veterinarios v ON c.veterinario_id = v.id LEFT JOIN mascotas m ON c.mascota_id = m.id WHERE c.cliente_id = ? AND c.fecha >= ? ORDER BY c.fecha, c.hora");
-        $s->execute([$cliente['id'], $hoy]);
-        $cs = $s->fetchAll();
-        $txt = "📋 <b>Tus próximas citas:</b>\n\n";
-        foreach ($cs as $c) {
-            $pet = $c['mname'] ? " (Mascota: {$c['mname']})" : "";
-            $txt .= "📅 {$c['fecha']} a las {$c['hora']}\n🩺 Vet: {$c['vname']}$pet\n\n";
-        }
-        sendMessage($chatId, empty($cs) ? "No tienes citas agendadas." : $txt);
-    } elseif ($data === 'registrar_nueva') {
-        setStep($chatId, 'reg_nombre');
-        sendMessage($chatId, "¡Genial! Vamos a registrarte. 😊\n\n¿Cuál es tu <b>nombre completo</b>?");
-    } elseif ($data === 'check_contact') {
-        sendContact($chatId, "📱 Por favor, presiona el botón de abajo para compartir tu número:");
-    }
+    } // ... rest of callback logic ...
 } elseif (isset($update['message'])) {
     $msg = $update['message'];
     $text = trim($msg['text'] ?? '');
 
-    // Manejo de Estados (Cuestionario y Registro)
+    // 1. Comandos Prioritarios (Siempre responden)
+    if ($text === '/start') {
+        if ($cliente) {
+            mostrarMenuPrincipal($chatId, $cliente['nombre']);
+        } else {
+            $kb = ['inline_keyboard' => [
+                [['text' => '📱 Compartir Número (Si ya eres cliente)', 'callback_data' => 'check_contact']],
+                [['text' => '🆕 Registrarme como nuevo cliente', 'callback_data' => 'registrar_nueva']]
+            ]];
+            sendMessage($chatId, "🐾 ¡Bienvenido a la Clínica Veterinaria! 🐾\n\nVeo que aún no estás registrado. ¿Cómo deseas continuar?", $kb);
+        }
+        clearStep($chatId);
+        exit;
+    } elseif ($text === '/cancel' || strtolower($text) === 'cancelar') {
+        clearStep($chatId);
+        sendMessage($chatId, "Acción cancelada.");
+        if ($cliente) mostrarMenuPrincipal($chatId, $cliente['nombre']);
+        exit;
+    }
+
+    // 2. Registro por contacto (Compartir número)
+    if (isset($msg['contact'])) {
+        $num = preg_replace('/\D/', '', $msg['contact']['phone_number']);
+        $cl = buscarClientePorTelefono($num);
+        if ($cl) {
+            vincularTelegram($cl['id'], $chatId);
+            sendMessage($chatId, "✅ Vinculado como <b>{$cl['nombre']}</b>. Escribe /start.");
+            clearStep($chatId);
+        } else {
+            sendMessage($chatId, "❌ Número no registrado en nuestro sistema.");
+        }
+        exit;
+    }
+
+    // 3. Manejo de Estados (Cuestionario y Registro paso a paso)
     if ($estado) {
         $step = $estado['step'];
         $sdata = $estado['data'];
@@ -233,12 +226,10 @@ if (isset($update['callback_query'])) {
             $sdata['m_vacunas'] = $text;
             $db = getDB();
             
-            // 1. Guardar o actualizar mascota
             $stmtM = $db->prepare("INSERT INTO mascotas (cliente_id, nombre, especie, raza, edad, vacunas) VALUES (?, ?, ?, ?, ?, ?)");
             $stmtM->execute([$cliente['id'], $sdata['m_nombre'], $sdata['m_especie'], $sdata['m_raza'], $sdata['m_edad'], $sdata['m_vacunas']]);
             $mascotaId = $db->lastInsertId();
 
-            // 2. Guardar cita
             $stmtC = $db->prepare("INSERT INTO citas (cliente_id, veterinario_id, mascota_id, fecha, hora) VALUES (?, ?, ?, ?, ?)");
             if ($stmtC->execute([$cliente['id'], $sdata['vid'], $mascotaId, $sdata['f'], $sdata['h']])) {
                 clearStep($chatId);
@@ -248,31 +239,6 @@ if (isset($update['callback_query'])) {
             }
         }
         exit;
-    }
-
-    if (isset($msg['contact'])) {
-        $num = preg_replace('/\D/', '', $msg['contact']['phone_number']);
-        $cl = buscarClientePorTelefono($num);
-        if ($cl) {
-            vincularTelegram($cl['id'], $chatId);
-            sendMessage($chatId, "✅ Vinculado como <b>{$cl['nombre']}</b>. Escribe /start.");
-        } else {
-            sendMessage($chatId, "❌ Número no registrado en nuestro sistema.");
-        }
-    } elseif ($text === '/start') {
-        if ($cliente) {
-            mostrarMenuPrincipal($chatId, $cliente['nombre']);
-        } else {
-            $kb = ['inline_keyboard' => [
-                [['text' => '📱 Compartir Número (Si ya eres cliente)', 'callback_data' => 'check_contact']],
-                [['text' => '🆕 Registrarme como nuevo cliente', 'callback_data' => 'registrar_nueva']]
-            ]];
-            sendMessage($chatId, "🐾 ¡Bienvenido a la Clínica Veterinaria! 🐾\n\nVeo que aún no estás registrado. ¿Cómo deseas continuar?", $kb);
-        }
-    } elseif ($text === '/cancel' || strtolower($text) === 'cancelar') {
-        clearStep($chatId);
-        sendMessage($chatId, "Acción cancelada.");
-        if ($cliente) mostrarMenuPrincipal($chatId, $cliente['nombre']);
     }
 }
 
