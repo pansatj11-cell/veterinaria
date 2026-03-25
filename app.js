@@ -7,16 +7,20 @@ const sections = document.querySelectorAll('.view-section');
 
 navBtns.forEach(btn => {
     btn.addEventListener('click', () => {
-        navBtns.forEach(b => b.classList.remove('active'));
-        sections.forEach(s => s.classList.remove('active'));
-
-        btn.classList.add('active');
         const targetId = btn.getAttribute('data-target');
-        document.getElementById(targetId).classList.add('active');
+        const targetSection = document.getElementById(targetId);
+        
+        if (targetSection) {
+            navBtns.forEach(b => b.classList.remove('active'));
+            sections.forEach(s => s.classList.remove('active'));
 
-        if (targetId === 'clientes') cargarClientes();
-        if (targetId === 'veterinarios') cargarVeterinarios();
-        if (targetId === 'citas-admin') cargarListaCitas();
+            btn.classList.add('active');
+            targetSection.classList.add('active');
+
+            if (targetId === 'clientes') cargarClientes();
+            if (targetId === 'veterinarios') cargarVeterinarios();
+            if (targetId === 'citas-admin') cargarListaCitas();
+        }
     });
 });
 
@@ -32,28 +36,36 @@ function showToast(message, isError = false) {
 }
 
 // === API CLIENTES ===
-document.getElementById('form-cliente').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const payload = {
-        nombre: document.getElementById('cliente-nombre').value,
-        telefono: document.getElementById('cliente-telefono').value
-    };
+const formCliente = document.getElementById('form-cliente');
+if (formCliente) {
+    formCliente.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        try {
+            const payload = {
+                nombre: document.getElementById('cliente-nombre').value,
+                telefono: document.getElementById('cliente-telefono').value
+            };
 
-    const res = await fetch('api_clientes.php', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+            const res = await fetch('api_clientes.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await res.json();
+            if (data.success) {
+                showToast('Cliente registrado exitosamente');
+                formCliente.reset();
+                cargarClientes();
+            } else {
+                showToast(data.message || 'Error', true);
+            }
+        } catch (error) {
+            console.error('Error al registrar cliente:', error);
+            showToast('Error de conexión con el servidor', true);
+        }
     });
-
-    const data = await res.json();
-    if (data.success) {
-        showToast('Cliente registrado exitosamente');
-        document.getElementById('form-cliente').reset();
-        cargarClientes();
-    } else {
-        showToast(data.message || 'Error', true);
-    }
-});
+}
 
 async function eliminarCliente(id, nombre) {
     if (!confirm(`¿Estás seguro de eliminar al cliente "${nombre}"?`)) return;
@@ -94,29 +106,37 @@ async function cargarClientes() {
 }
 
 // === API VETERINARIOS ===
-document.getElementById('form-veterinario').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const payload = { 
-        nombre: document.getElementById('vet-nombre').value,
-        usuario: document.getElementById('vet-usuario').value,
-        password: document.getElementById('vet-password').value
-    };
+const formVeterinario = document.getElementById('form-veterinario');
+if (formVeterinario) {
+    formVeterinario.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        try {
+            const payload = { 
+                nombre: document.getElementById('vet-nombre').value,
+                usuario: document.getElementById('vet-usuario').value,
+                password: document.getElementById('vet-password').value
+            };
 
-    const res = await fetch('api_veterinarios.php', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+            const res = await fetch('api_veterinarios.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await res.json();
+            if (data.success) {
+                showToast('Veterinario registrado');
+                formVeterinario.reset();
+                cargarVeterinarios();
+            } else {
+                showToast(data.message || 'Error', true);
+            }
+        } catch (error) {
+            console.error('Error al registrar veterinario:', error);
+            showToast('Error de conexión con el servidor', true);
+        }
     });
-
-    const data = await res.json();
-    if (data.success) {
-        showToast('Veterinario registrado');
-        document.getElementById('form-veterinario').reset();
-        cargarVeterinarios();
-    } else {
-        showToast(data.message || 'Error', true);
-    }
-});
+}
 
 async function eliminarVeterinario(id, nombre) {
     if (!confirm(`¿Estás seguro de eliminar al veterinario "${nombre}"?`)) return;
